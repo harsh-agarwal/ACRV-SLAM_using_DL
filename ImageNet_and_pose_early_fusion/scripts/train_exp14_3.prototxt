@@ -1,0 +1,752 @@
+# Enter your network definition here.
+# Use Shift+Enter to update the visualization.
+
+layer {
+  name: "imL"
+  type: "ImageData"
+  top: "imL"
+  top: "fakel1"
+  transform_param {
+    mean_value: 104
+    mean_value: 117
+    mean_value: 123
+  }
+  image_data_param {
+    source: "../resource/NYUv2_0/Itgt_train.txt" #/home/harsh/using_imagenet_to_get_pose/resource/NYUv2_3
+    new_width: 320
+    new_height: 240 
+    batch_size: 64
+  }
+}
+
+layer {
+  name: "crop_imL"
+  type: "Crop"
+  bottom: "imL"
+  bottom: "fakel1"
+  top: "cropped_imL"
+  crop_param {
+    axis: 2
+    offset: 7
+    offset: 47
+    size: 227
+    size: 227
+  }
+}
+
+layer {
+  name: "imR"
+  type: "ImageData"
+  top: "imR"
+  top: "fakel2"
+  transform_param {
+    mean_value: 104
+    mean_value: 117
+    mean_value: 123
+  }
+  image_data_param {
+    source: "../resource/NYUv2_0/Isrc_train.txt"
+    new_width: 320
+    new_height: 240
+    batch_size: 64
+  }
+}
+
+layer {
+  name: "crop_imR"
+  type: "Crop"
+  bottom: "imR"
+  bottom: "fakel2"
+  top: "cropped_imR"
+  crop_param {
+    axis: 2
+    offset: 7
+    offset: 47
+    size: 227
+    size: 227
+  }
+}
+
+layer {
+  name: "depth_of_imageL"
+  type: "ImageData"
+  top: "depth_of_imageL"
+  top: "fakel3"
+  transform_param {
+    scale: 0.0002
+  }
+  image_data_param {
+    source: "../resource/NYUv2_0/Dtgt_train.txt"
+    new_width: 320
+    new_height: 240 
+    batch_size: 64
+    is_color: false 
+  }
+}
+
+layer {
+  name: "crop_depth_to_227x227"
+  type: "Crop"
+  bottom: "depth_of_imageL"
+  bottom: "fakel3"
+  top: "cropped_depth"
+  crop_param {
+    axis: 2
+    offset: 7
+    offset: 47
+    size: 227
+    size: 227
+  }
+}
+
+layer {
+  bottom: "cropped_depth"
+  top: "mask_for_loss"
+  name: "create_a_mask_using_depth"
+  type: "Threshold"
+  threshold_param{
+		threshold: 1e-12
+	}
+}
+
+layer {
+  name: "getting_number_of_valid_pixels"
+  type: "Reduction"
+  bottom: "mask_for_loss"
+  top: "number_of_valid_pixels"
+  reduction_param {
+    axis: 0 # reduce all dims after first
+    operation: SUM # use absolute sum
+  }
+}
+
+layer {
+  name: "transformation_gt"
+  type: "Data"
+  top: "transformation_gt"
+  data_param {
+    source: "../resource/NYUv2_0/camMotion_lmdb_train"
+    # type of DB: LEVELDB or LMDB (LMDB supports concurrent reads)
+    backend: LMDB
+    # batch processing improves efficiency.
+    batch_size: 64
+  }
+}
+
+
+layer {
+  name: "converting_depth_mask_to_three_channel"
+  bottom: "mask_for_loss"
+  bottom: "mask_for_loss"
+  bottom: "mask_for_loss"
+  top: "three_channel_depth_mask"
+  type: "Concat"
+  concat_param {
+    axis: 1
+  }
+}
+
+layer {
+  name: "concat_the_inputs"
+  bottom: "cropped_imR"
+  bottom: "cropped_imL"
+  top: "Concatenated_inputs"
+  type: "Concat"
+  concat_param {
+    axis: 1
+  }
+}
+
+
+layer {
+  name: "conv1_new"
+  type: "Convolution"
+  bottom: "Concatenated_inputs"
+  top: "conv1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 96
+    kernel_size: 11
+    stride: 4
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "conv1"
+  top: "conv1"
+}
+layer {
+  name: "norm1"
+  type: "LRN"
+  bottom: "conv1"
+  top: "norm1"
+  lrn_param {
+    local_size: 5
+    alpha: 0.0001
+    beta: 0.75
+  }
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "norm1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 2
+    kernel_size: 5
+    group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu2"
+  type: "ReLU"
+  bottom: "conv2"
+  top: "conv2"
+}
+layer {
+  name: "norm2"
+  type: "LRN"
+  bottom: "conv2"
+  top: "norm2"
+  lrn_param {
+    local_size: 5
+    alpha: 0.0001
+    beta: 0.75
+  }
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "norm2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layer {
+  name: "conv3"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 384
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu3"
+  type: "ReLU"
+  bottom: "conv3"
+  top: "conv3"
+}
+layer {
+  name: "conv4"
+  type: "Convolution"
+  bottom: "conv3"
+  top: "conv4"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 384
+    pad: 1
+    kernel_size: 3
+    group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu4"
+  type: "ReLU"
+  bottom: "conv4"
+  top: "conv4"
+}
+layer {
+  name: "conv5"
+  type: "Convolution"
+  bottom: "conv4"
+  top: "conv5"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu5"
+  type: "ReLU"
+  bottom: "conv5"
+  top: "conv5"
+}
+layer {
+  name: "pool5"
+  type: "Pooling"
+  bottom: "conv5"
+  top: "pool5"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layer {
+  name: "fc6_new"
+  type: "InnerProduct"
+  bottom: "pool5"
+  top: "fc6"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 1000
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6"
+  top: "fc6"
+}
+layer {
+  name: "drop6"
+  type: "Dropout"
+  bottom: "fc6"
+  top: "fc6"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "fc7_new"
+  type: "InnerProduct"
+  bottom: "fc6"
+  top: "fc7"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu7"
+  type: "ReLU"
+  bottom: "fc7"
+  top: "fc7"
+}
+layer {
+  name: "drop7"
+  type: "Dropout"
+  bottom: "fc7"
+  top: "fc7"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "fc8_new"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "fc8"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 6
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+
+
+layer {
+  name: "average_6DoF's"
+  type: "Reduction"
+  bottom: "fc8"
+  top: "average_6DoF's"
+  reduction_param {
+    axis: 0 # reduce all dims after first
+    operation: MEAN # use absolute sum
+  }
+}
+
+
+
+
+layer {
+  type: "Python"
+  name: "get_4x4_transformation_matrix"
+  top: "get_4x4_transformation_matrix"
+  bottom: "fc8"
+	
+  python_param {
+    # the module name -- usually the filename -- that needs to be in $PYTHONPATH
+    module: "pygeometry"
+    # the layer name -- the class name in the module
+    layer: "SE3_Generator"
+		param_str : '{"threshold": 1e-12}' #I just gave a value need to check HELP 
+  }
+}
+
+layer {
+  name: "diff_gt_transform_predicted"
+  type: "AbsLoss"
+  bottom: "get_4x4_transformation_matrix"
+  bottom: "transformation_gt"
+  top: "diff_gt_transform_predicted"
+  loss_weight: 0
+}
+
+
+layer {
+  type: "Python"
+  name: "get_the_3D_points"
+  top: "get_the_3D_points"
+ 
+  bottom: "cropped_depth"
+  bottom: "get_4x4_transformation_matrix" 	
+	  
+  python_param {
+    # the module name -- usually the filename -- that needs to be in $PYTHONPATH
+    module: "pygeometry"
+    # the layer name -- the class name in the module
+    layer: "Transform3DGrid"
+		param_str : '{"fx":  259.425 ,"fy" : 259.73 , "cx" : 116.3 , "cy": 120.36 }' #put in suitable values HELP
+  }
+}
+
+layer {
+  type: "Python"
+  name: "get_the_flow"
+  top: "get_the_flow"
+  bottom: "get_the_3D_points" 
+	
+  python_param {
+    # the module name -- usually the filename -- that needs to be in $PYTHONPATH
+    module: 'pygeometry'
+    # the layer name -- the class name in the module
+    layer: 'PinHoleCamProj'
+    param_str:'{"fx":  259.425 ,"fy" : 259.73 , "cx" : 116.3 , "cy": 120.36,"grid_normalized": False , "flowFlag": True}' #Need to check whether the values assigned are correct ? HELP 
+  }
+}
+
+layer {
+  name: "slice_hflow_and_vflow_for_R2L"
+  type: "Slice"
+  bottom: "get_the_flow"
+  top: "h_flow"
+  top: "v_flow"
+  slice_param {
+    axis: 1
+    slice_point: 1
+    
+  }
+}
+
+layer {
+  name: "average_v_flow"
+  type: "Reduction"
+  bottom: "v_flow"
+  top: "average_v_flow"
+  reduction_param {
+    axis: 0 # reduce all dims after first
+    operation: MEAN # use absolute sum
+  }
+}
+
+layer {
+  name: "average_h_flow"
+  type: "Reduction"
+  bottom: "h_flow"
+  top: "average_h_flow"
+  reduction_param {
+    axis: 0 # reduce all dims after first
+    operation: MEAN # use absolute sum
+  }
+}
+
+layer {
+  name: "normimL"
+  type: "Scale"
+  bottom: "cropped_imL"
+  top: "imL1"
+  param {
+    lr_mult: 0
+  }
+  scale_param {
+    filler {
+      type: "constant"
+      value: 0.004
+    }
+  }
+}
+
+layer {
+  name: "average_normimL"
+  type: "Reduction"
+  bottom: "imL1"
+  top: "average_normimL"
+  reduction_param {
+    axis: 0 # reduce all dims after first
+    operation: MEAN # use absolute sum
+  }
+}
+
+
+layer {
+  name: "normimR"
+  type: "Scale"
+  bottom: "cropped_imR"
+  top: "imR1"
+  param {
+    lr_mult: 0
+  }
+  scale_param {
+    filler {
+      type: "constant"
+      value: 0.004
+    }
+  }
+}
+
+layer {
+  name: "average_normimR"
+  type: "Reduction"
+  bottom: "imR1"
+  top: "average_normimR"
+  reduction_param {
+    axis: 0 # reduce all dims after first
+    operation: MEAN # use absolute sum
+  }
+}
+
+layer {
+  name: "backwarp_R2L"
+  type: "Warping"
+  bottom: "imR1"
+  bottom: "h_flow"
+  bottom: "v_flow"
+  propagate_down: false 
+  propagate_down: true 
+  propagate_down: true 
+  top: "back_warp"
+}
+###################################################
+
+layer
+{
+  name: "masking_the_backwarp_created"
+  type: "Eltwise"
+  bottom: "back_warp"
+  bottom: "three_channel_depth_mask"
+  top: "back_warp_masked"
+  eltwise_param {
+  operation: PROD
+  }
+}
+
+layer {
+  name: "average_backwarp"
+  type: "Reduction"
+  bottom: "back_warp_masked"
+  top: "average_back_warp"
+  reduction_param {
+    axis: 0 # reduce all dims after first
+    operation: MEAN # use absolute sum
+  }
+}
+
+layer
+{
+  name: "masking_the_target_image"
+  type: "Eltwise"
+  bottom: "imL1"
+  bottom: "three_channel_depth_mask"
+  top: "imL_masked"
+  eltwise_param {
+  operation: PROD
+  }
+}
+
+
+layer {
+  name: "warp_error_R2L"
+  type: "AbsLoss"
+  bottom: "back_warp_masked"
+  bottom: "imL_masked"
+  top: "warp_error"
+  loss_weight: 1
+}
+
+
+
+
+
+###############################################
+
+#layer {
+#  type: "Python"
+#  name: "masked_abs_loss"
+#  top: "masked_abs_loss"
+#  bottom: "depth_of_imageL" 
+#  bottom: "back_warp"
+#  bottom: "imL1"	
+#  python_param {
+#    # the module name -- usually the filename -- that needs to be in $PYTHONPATH
+#    module: 'masked_abs_loss'
+#    # the layer name -- the class name in the module
+#    layer: 'abs_warp_masked_loss_v1'
+#    #Need to check whether the values assigned are correct ? HELP 
+#  }
+#  loss_weight: 1
+#}
+
+layer {
+  name: "sil1"
+  type: "Silence"
+  bottom: "fakel1"
+}
+
+layer {
+  name: "sil1"
+  type: "Silence"
+  bottom: "fakel2"
+}
+
+layer {
+  name: "sil1"
+  type: "Silence"
+  bottom: "fakel3"
+}
+
+

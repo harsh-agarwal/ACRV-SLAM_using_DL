@@ -1,0 +1,13 @@
+layer {
+  name: "six_dof_gt"
+  type: "Data"
+  top: "six_dof_gt"
+  data_param {
+    source: "../resource/NYUv2_4/six_dof_lmdb_train"
+    # type of DB: LEVELDB or LMDB (LMDB supports #concurrent reads)
+    backend: LMDB
+    # batch processing improves efficiency.
+    batch_size: 64
+  }
+}
+
