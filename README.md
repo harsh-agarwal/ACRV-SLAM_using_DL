@@ -61,7 +61,7 @@ We would be referring them as "HuangYing's Layer"
 
 ## Photometric Loss and Backwarp
 
-Also the **Backwarp layer** and **Abs_loss_layer** has been used which was a part of ["Unsupervised CNN for single view depth estimation: Geometry to the rescue"] by Garg et al. at ACRV along with Prof. Ian Reid. 
+Also the **Backwarp layer** and **Abs_loss_layer** has been used which was a part of ["Unsupervised CNN for single view depth estimation: Geometry to the rescue"](https://github.com/Ravi-Garg/Unsupervised_Depth_Estimation) by Garg et al. at ACRV along with Prof. Ian Reid. 
 
 ## Layers in Depth Network 
 For implemeting Eigen's network we reused and tweaked of some of the layers that were a part of "Dense monocular reconstruction using surface normals" by [Saroj Weerasekera](https://www.roboticvision.org/rv_person/saroj-weerasekera/). The description of the layer's used are as follows: 
@@ -131,11 +131,13 @@ The desired data should be created in the specified folder with the properties m
 
 Caution: Do check the data once before you start training. 
 
-Results:
+## Results:
  
 Detailed results are under process. Till then you can have a qualitative idea about what are heading upto by looking at the [Using ImageNet to get Pose](https://harsh-agarwal.github.io/Can-imageNet-be-Used/) and [A U-Net Kind of Depth Net](https://harsh-agarwal.github.io/Depth-Network/)
 
+## Credits 
 
+This work was pursued by me at University of Adelaide as a part of the summer internship under Prof. Ian Reid. This work wouldn't have been possible without the constant support of Ravi Garg, Huangying Zhan and Saroj Weerasekera. 
 
 
 
