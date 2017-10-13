@@ -47,12 +47,31 @@ The following tutorial might help:
 
 This will help you in understanding ow to deploy a simple caffe custom layer from scratch!  
 
+# Details of layers 
+
+We created three layers in python (look into _pygeometry.py_), the details of which are as follows. These layers are inline to the implementation by [GVNN implementation by Handa et al. in Torch](https://github.com/ankurhanda/gvnn): 
+
+- **SE3 Generator Layer:** This layer would be used for converting the 6 DoF’s that we predict for getting the 4x4 Transformation Matrix 
+- **Transform 3D Grid:** You need to transform the Target Depth according to the estimated pose.  
+- **Pin Hole Camera Projection:** You need to project the transformed depth onto the image, or equivalently get the flow and add this flow to your source image to obtain your target image. 
+
+The mathematics behind it might seem very complicated. No worries, [Huangying Zhan](https://www.roboticvision.org/rv_person/huangying-zhan/) had prepared a nice documentation regarding the derivation of the formula. The complete documentation can be found here. [Spatial Transformer Network Formulation by Huangying Zhan](https://drive.google.com/file/d/0B3BMdiXdDUoKTzExVVctWHB2NTYzMTNROW85a0Jpa1ZybDNJ/view?usp=sharing) 
+
+We would be referring them as "HuangYing's Layer" 
+
+Also the **Backwarp layer** has been used which was a part of ["Unsupervised CNN for single view depth estimation: Geometry to the rescue"] by Garg et al. at ACRV along with Prof. Ian Reid. 
+
+Saroj https://www.roboticvision.org/rv_person/saroj-weerasekera/
+
+For implemeting Eigen's network we reused and tweaked of some of the layers that was a part of "Dense monocular reconstruction using surface normals" by [Saroj Weerasekera](https://www.roboticvision.org/rv_person/saroj-weerasekera/) which are as follows:  
+
+- **sparse_log_layer**: calculates the log of non zero values.
+- ****
+
+
 # Training the Network
 
-Once though with all the installations and the dependencies, we come to train our network. For the same first we need to build the dataset. A script for the same has been included, build_dataset.py
-
-
-
+Once though with all the installations and the dependencies, we come to train our network. For the same first we need to build the dataset. A script for the same has been included, build_dataset.py. the following code snippet explains how to use the script.
 
 ```python
 dataset = "NYU" # mention the name of the dataset use 
@@ -102,6 +121,10 @@ python build_dataset.py
 The desired data should be created in the specified folder with the properties mentioned in the script! 
 
 Caution: Do check the data once before you start training. 
+
+Results:
+
+For the pose network the following results have been obtained: 
 
 
 
