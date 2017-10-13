@@ -1,8 +1,7 @@
-# Depth and pose estimation using ConvNets
+# Depth and Pose Estimation using ConvNets
+The idea is to create a full-fledged vSLAM system using DL(Deep Learning). For the same we have considered the 'baby steps' which are as follows: 
 
-The idea is to create a full fledged SLAM system using DL(Deep Learning). For the same we have considered the 'baby steps' which are as follows: 
-
-- getting the pose in an unsupervised manner. (Trying to improve the results! Any suggestions feel free to PR)
+- getting the pose in an unsupervised manner using photmetric loss. (Trying to improve the results! Any suggestions feel free to PR)
 - checking the idea if depth features can be used to get a pose! 
 - designing a depth network.
 - working towards merging all the above elements. (TO BE DONE! Still Working on it)
@@ -25,12 +24,12 @@ As a student I would like to mention that in order to understand the approach an
 
 I have prepared a log that I followed before starting the project you might find it useful to start with. [A begginer's guide to vision and DL](https://harsh-agarwal.github.io/A-start!/)
 
-# Pre Requisites (System Requirements)
+# Pre-requisites (System Requirements)
 
-The following need to be installed:
+The following libararies and softwares need to be installed:
 
-- Anaconda installation with all the latest dependencies which includes openCV and many othr libraries that CAFFE uses at the back 
-- a C++ Compiler.
+- [Anaconda](https://conda.io/docs/install/quick.html) installation with all the latest dependencies which includes openCV and many othr libraries that CAFFE uses at the back 
+- a C++ Compiler(msut be there! Just do version check!)
 - CUDA 7.5 or CUDA 8.0 libraries along with a GPU. The depth network is pretty huge so you need to have enough GPU space to train the network.
 - [CAFFE(Convolutional Architecture for Fast Feature Extraction)](http://caffe.berkeleyvision.org/)
   Please follow the instructions given on the website and build CAFFE with Python Layer Support as three layers that we would be using are written in python. Also add the layers that has been included in the caffe directory in the repository at suitable locations in your system so that your caffe has all the layers and mathematical tools to run our network.
@@ -43,12 +42,13 @@ The details of installtions of all the above are mentioned on their offcial wesi
 
 The following tutorial might help: 
 > [Simple-Example:-Sin-Layer](https://github.com/BVLC/caffe/wiki/Simple-Example:-Sin-Layer)
-> [Making a layer in caffe](https://chrischoy.github.io/research/making-caffe-layer/)
+[Making a layer in caffe](https://chrischoy.github.io/research/making-caffe-layer/)
 
 This will help you in understanding ow to deploy a simple caffe custom layer from scratch!  
 
-# Details of layers 
+# Details of custom layers  
 
+## Hunagying's Layer 
 We created three layers in python (look into _pygeometry.py_), the details of which are as follows. These layers are inline to the implementation by [GVNN implementation by Handa et al. in Torch](https://github.com/ankurhanda/gvnn): 
 
 - **SE3 Generator Layer:** This layer would be used for converting the 6 DoF’s that we predict for getting the 4x4 Transformation Matrix 
@@ -59,14 +59,23 @@ The mathematics behind it might seem very complicated. No worries, [Huangying Zh
 
 We would be referring them as "HuangYing's Layer" 
 
-Also the **Backwarp layer** has been used which was a part of ["Unsupervised CNN for single view depth estimation: Geometry to the rescue"] by Garg et al. at ACRV along with Prof. Ian Reid. 
+## Photometric Loss and Backwarp
 
-Saroj https://www.roboticvision.org/rv_person/saroj-weerasekera/
+Also the **Backwarp layer** and **Abs_loss_layer** has been used which was a part of ["Unsupervised CNN for single view depth estimation: Geometry to the rescue"] by Garg et al. at ACRV along with Prof. Ian Reid. 
 
-For implemeting Eigen's network we reused and tweaked of some of the layers that was a part of "Dense monocular reconstruction using surface normals" by [Saroj Weerasekera](https://www.roboticvision.org/rv_person/saroj-weerasekera/) which are as follows:  
+## Layers in Depth Network 
+For implemeting Eigen's network we reused and tweaked of some of the layers that were a part of "Dense monocular reconstruction using surface normals" by [Saroj Weerasekera](https://www.roboticvision.org/rv_person/saroj-weerasekera/). The description of the layer's used are as follows: 
 
-- **sparse_log_layer**: calculates the log of non zero values.
-- ****
+- **sparse_depth_euclidean_pairwise_loss_layer** - Computes the Eigen's loss given $\log(depth)$ values.
+- **sparse_log_layer**: Computes the $\log(non-zero)$ values.
+- **data_augmentation_layer**: It can primarily making the following augmentations in order to prevent overfitting.
+	* Crop
+	* Scale
+	* Colour 
+	* Flip 
+	* Rotate
+	* Translate 
+	  And all this happens with a probability that is specified in the layer parameters! 
 
 
 # Training the Network
@@ -123,8 +132,10 @@ The desired data should be created in the specified folder with the properties m
 Caution: Do check the data once before you start training. 
 
 Results:
+ 
+Detailed results are under process. Till then you can have a qualitative idea about what are heading upto by looking at the [Using ImageNet to get Pose](https://harsh-agarwal.github.io/Can-imageNet-be-Used/) and [A U-Net Kind of Depth Net](https://harsh-agarwal.github.io/Depth-Network/)
 
-For the pose network the following results have been obtained: 
+
 
 
 
